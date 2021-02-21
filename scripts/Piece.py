@@ -1,4 +1,3 @@
-from os import sendfile
 from scripts.Utilities import *
 
 class piece(): 
@@ -9,6 +8,16 @@ class piece():
         self.movesMade = 0
         self.posLocations = []
         self.alive = True
+
+    def getValue(self):
+        valMod = 1
+        if (not self.isWhite): valMod = -1
+        if (self.pieceType == 0): return valMod * 1
+        elif (self.pieceType == 1): return valMod * 5
+        elif (self.pieceType == 2): return valMod * 3
+        elif (self.pieceType == 3): return valMod * 3.5
+        elif (self.pieceType == 4): return valMod * 9
+        elif (self.pieceType == 5): return valMod * math.pow(10,10)
 
     def getPieceName(self):
         type = self.pieceType

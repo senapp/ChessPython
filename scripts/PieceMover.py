@@ -1,6 +1,6 @@
 from scripts.Piece import piece
 from scripts.Board import getCellOnMouse
-from scripts.PieceManager import getPieceOnCell, isWhitesTurn, movePiece, removePieceFromPlay
+from scripts.PieceManager import getPieceOnCell, isWhitesTurn, movePiece, pieceMakeMove, removePieceFromPlay
 
 # First val = index in pieceArray, second val = piece object
 heldPiece = 0,0
@@ -21,12 +21,7 @@ def mouseReleased(position):
     if (holdingPiece):
         pos = getCellOnMouse(position)
         if (pos in heldPiece[1].posLocations):
-            pieceOnNewPos = getPieceOnCell(pos)
-            if (pieceOnNewPos[0] != 0):
-                removePieceFromPlay(pieceOnNewPos[1].isWhite, pieceOnNewPos[0])
-                movePiece(heldPiece[1].isWhite, heldPiece[0], pos)
-            else:
-                movePiece(heldPiece[1].isWhite, heldPiece[0], pos)
+            pieceMakeMove(pos, heldPiece[0], heldPiece[1], True)
     holdingPiece = False
 
 def getHoldingPiece():

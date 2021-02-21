@@ -1,3 +1,4 @@
+from scripts.AI import setupAI
 from typing import Any
 import pygame
 from pygame.locals import *
@@ -72,6 +73,7 @@ def main():
     
     setupBoard(width, height, xGrid, yGrid, cellSize)   
     pieceManagerSetup(xGrid,yGrid, whiteStarts) 
+    setupAI(False, 0)
 
     board = drawBoard()
     pieces = drawPieces()

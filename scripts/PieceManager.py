@@ -2,6 +2,7 @@ from scripts.Menu import gameOver, resetGame
 from scripts.Utilities import *
 from scripts.Piece import *
 from scripts.Board import getBoardPositonCenter, getRowAndCollum, getCellSize, getGrid, getSize
+from scripts.AI import *
 
 pieceSize = 250
 piecesAmount = 0
@@ -10,16 +11,20 @@ blackPieceArray = []
 redrawRequired = False
 whitesTurn = True
 lastMove = ["NONE", ""]
-
-def removePieceFromPlay(isWhite, index):
-    global redrawRequired
-    if (isWhite):
-        if (whitePieceArray[index].pieceType == 5): gameOver(False)
-        whitePieceArray[index].alive = False
+def getArrays():
+    global whitePieceArray, blackPieceArray
+    return whitePieceArray, blackPieceArray
+def pieceMakeMove(pos, index, piece, isPlayer):
+    pieceOnNewPos = getPieceOnCell(pos)
+    if (pieceOnNewPos[0] != 0):
+        removePieceFromPlay(pieceOnNewPos[1].isWhite, pieceOnNewPos[0])
+        movePiece(piece.isWhite, index, pos)
     else:
-       if (blackPieceArray[index].pieceType == 5): gameOver(True)
-       blackPieceArray[index].alive = False
-    redrawRequired = True
+        movePiece(piece.isWhite, index, pos)
+    if (IS_AI() and isPlayer): 
+        returnVals = calculateMove(whitePieceArray, blackPieceArray)
+        pieceMakeMove(returnVals[0], returnVals[1], returnVals[2], returnVals[3])
+
 
 def moveText(piece, newPos):
     move = [piece.getPieceName(),""]
@@ -33,8 +38,19 @@ def moveText(piece, newPos):
     move[1] += " -> " + letter + str(getGrid()[1] - number)
     return move
 
+def removePieceFromPlay(isWhite, index):
+    global redrawRequired
+    if (isWhite):
+        if (whitePieceArray[index].pieceType == 5): gameOver(False)
+        whitePieceArray[index].alive = False
+    else:
+       if (blackPieceArray[index].pieceType == 5): gameOver(True)
+       blackPieceArray[index].alive = False
+    redrawRequired = True
+
 def movePiece(isWhite, index, newPos):
     global redrawRequired, lastMove, whitesTurn
+
     if (isWhite):
         lastMove = moveText(whitePieceArray[index], newPos)
         whitePieceArray[index].position = newPos
@@ -45,6 +61,7 @@ def movePiece(isWhite, index, newPos):
         blackPieceArray[index].position = newPos
         blackPieceArray[index].movesMade = 1 + blackPieceArray[index].movesMade
         whitesTurn = True
+    calculatePieces()
     redrawRequired = True
 
 def resetPieces():
@@ -90,7 +107,7 @@ def pieceManagerSetup(xGrid, yGrid, whiteStarts):
                 blackPieceArray.append(piece(position, 0, False))
             elif position >= xGrid * (yGrid - 2) and position < xGrid * (yGrid - 1):
                   whitePieceArray.append(piece(position, 0, True))
-
+    calculatePieces()
 def getPieceOnCell(cell):
     for index, piece in enumerate(whitePieceArray):
         if (piece.position == cell and piece.alive):
@@ -102,6 +119,14 @@ def getPieceOnCell(cell):
 
     return 0, 0
     
+def calculatePieces():
+    for pieceW in whitePieceArray:
+        if pieceW.alive:
+            pieceW.posLocations = getPossibleLocations(pieceW)
+    for pieceB in blackPieceArray:
+        if pieceB.alive:
+            pieceB.posLocations = getPossibleLocations(pieceB)
+
 def drawPieces():
     global redrawRequired
     redrawRequired = False
@@ -111,11 +136,9 @@ def drawPieces():
     pieces = pygame.Surface((width, height), pygame.SRCALPHA, 32)
     for pieceW in whitePieceArray:
         if pieceW.alive:
-            pieceW.posLocations = getPossibleLocations(pieceW)
             drawSprite(width, height, pieces, pieceSprite.getPiece(pieceSprite("white"),pieceW.pieceType), pieceSize, getBoardPositonCenter(pieceW.position))
     for pieceB in blackPieceArray:
         if pieceB.alive:
-            pieceB.posLocations = getPossibleLocations(pieceB)
             drawSprite(width, height, pieces, pieceSprite.getPiece(pieceSprite("black"),pieceB.pieceType), pieceSize, getBoardPositonCenter(pieceB.position))
     return pieces
 
