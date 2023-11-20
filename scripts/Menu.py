@@ -1,20 +1,23 @@
 from scripts.Utilities import *
 from scripts.Board import  getSize
-from timeit import default_timer as timer
+from datetime import *
 
 gameover = False
-endTime = 0
+endTimeSeconds = 0
 whiteWinner = False
-startTime = 0
+startTime = datetime.now()
+
+def seconds_between(d1, d2):
+    return abs((d1 - d2).seconds)
 
 def resetGame():
     global startTime, gameover
-    startTime = round(timer(), 1)
+    startTime = datetime.now()
     gameover = False
 
 def gameOver(whiteWon):
     global gameover, endTime, whiteWinner
-    endTime = round(timer() - startTime, 1)
+    endTime = seconds_between(datetime.now(), startTime)
     whiteWinner = whiteWon
     gameover = True
 
@@ -36,7 +39,7 @@ def drawMenu(menuWidth, myfont, fontSize, whitesTurn, lastMove):
             drawText(width, height,myfont, menu, "Move: " + lastMove[0], fontSize, (width + menuWidth / 2,height  - height / 8))
             drawText(width, height,myfont, menu, lastMove[1], fontSize, (width + menuWidth / 2,height  - height / 11))
 
-        drawText(width, height, myfont, menu, "Time: " + str(round(timer() - startTime, 1))+ "s", fontSize, (width + menuWidth / 2,height / 2))
+        drawText(width, height, myfont, menu, "Time: " + str(seconds_between(datetime.now(), startTime))+ "s", fontSize, (width + menuWidth / 2,height / 2))
     else:
         if (whiteWinner):
             drawText(width, height,myfont, menu, "White won!" , fontSize, (width + menuWidth / 2,height / 10))
