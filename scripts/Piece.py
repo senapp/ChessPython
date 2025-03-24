@@ -1,7 +1,7 @@
 from scripts.Utilities import *
 
-class piece(): 
-    def __init__(self, position, pieceType, isWhite): 
+class piece():
+    def __init__(self, position, pieceType, isWhite):
         self.isWhite = isWhite
         self.position = position
         self.pieceType = pieceType

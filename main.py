@@ -29,11 +29,13 @@ yGrid = 8
 cellSize = 50
 fontSize = 30
 whiteStarts = True
+blackAndWhiteColor = True
+AI = True
 #Default values end
 
 def setup():
-    global title, icon, font,myfont, maxFPS, logFPS, menuWidth, width, height, xGrid, yGrid, screen, FPS, cellSize, fontSize, whiteStarts
-    
+    global title, icon, font,myfont, maxFPS, logFPS, menuWidth, width, height, xGrid, yGrid, screen, FPS, cellSize, fontSize, whiteStarts, AI, blackAndWhiteColor
+
     settings = open("settings.config", "r")
     try:
         for setting in settings.readlines():
@@ -41,15 +43,21 @@ def setup():
             elif ("font" in setting): font = setting.split(':')[1]
             elif ("textSize" in setting): fontSize = int(setting.split(':')[1])
             elif ("maxFPS" in setting): maxFPS = int(setting.split(':')[1])
-            elif ("logFPS" in setting): 
+            elif ("logFPS" in setting):
                 if ("true" in setting.split(':')[1].lower()): logFPS = True
                 else: logFPS = False
             elif ("width" in setting): width = int(setting.split(':')[1])
             elif ("height" in setting): height = int(setting.split(':')[1])
             elif ("menuWidth" in setting): menuWidth = int(setting.split(':')[1])
-            elif ("whiteStarts" in setting): 
+            elif ("whiteStarts" in setting):
                 if ("true" in setting.split(':')[1].lower()): whiteStarts = True
                 else: whiteStarts = False
+            elif ("AI" in setting):
+                if ("true" in setting.split(':')[1].lower()): AI = True
+                else: AI = False
+            elif ("blackAndWhiteColor" in setting):
+                if ("true" in setting.split(':')[1].lower()): blackAndWhiteColor = True
+                else: blackAndWhiteColor = False
             #elif ("xGrid" in setting): xGrid = int(setting.split(':')[1])
             #elif ("yGrid" in setting): yGrid = int(setting.split(':')[1])
     except: print("settings.config format errors")
@@ -68,19 +76,19 @@ def setup():
 
     FPS = pygame.time.Clock()
     FPS.tick(maxFPS)
-    main()
 
 async def main():
     setup()
     RUNNING = True
-    
-    setupBoard(width, height, xGrid, yGrid, cellSize)   
-    pieceManagerSetup(xGrid,yGrid, whiteStarts) 
-    setupAI(False, 0)
+
+    setupBoard(width, height, xGrid, yGrid, cellSize, blackAndWhiteColor)
+    pieceManagerSetup(xGrid,yGrid, whiteStarts)
+    if (AI):
+        setupAI(False, 0)
 
     board = drawBoard()
     pieces = drawPieces()
-    menu = drawMenu(menuWidth, myfont, fontSize, isWhitesTurn() , getLastMove())
+    menu = drawMenu(menuWidth, myfont, fontSize, isWhitesTurn(), getLastMove())
 
     while RUNNING:
         for event in pygame.event.get():
@@ -93,10 +101,10 @@ async def main():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
                     resetPieces()
-                    pieceManagerSetup(xGrid,yGrid, whiteStarts) 
+                    pieceManagerSetup(xGrid, yGrid, whiteStarts)
                     pieces = drawPieces()
 
-        menu = drawMenu(menuWidth, myfont,fontSize, isWhitesTurn(), getLastMove())
+        menu = drawMenu(menuWidth, myfont, fontSize, isWhitesTurn(), getLastMove())
         if (isRedrawRequired()): pieces = drawPieces()
 
         screen.blit(board, (0,0))
@@ -104,7 +112,7 @@ async def main():
         screen.blit(menu, (0,0))
 
         if (isHoldingPiece()):
-            movingPiece = drawMovingPiece(getHoldingPiece()[1], pygame.mouse.get_pos())
+            movingPiece = drawMovingPiece(getHoldingPiece()[1], pygame.mouse.get_pos(), blackAndWhiteColor)
             screen.blit(movingPiece,(0,0))
 
         pygame.display.flip()

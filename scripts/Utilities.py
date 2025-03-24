@@ -8,7 +8,8 @@ def getChar(pos):
 def getColor(color):
     white = (255, 255, 255, 255)
     grey = (100, 100, 100, 255)
-    brown = (90, 45, 0, 255)
+    brown = (82, 49, 30, 255)
+    lightbrown = (197, 149, 98, 255)
     black = (50, 50, 50, 255)
     green = (0, 255, 0, 100)
 
@@ -16,6 +17,7 @@ def getColor(color):
     elif (color == "black"): return black
     elif (color == "white"): return white
     elif (color == "brown"): return brown
+    elif (color == "lightbrown"): return lightbrown
     elif (color == "green"): return green
     else: return black
 
