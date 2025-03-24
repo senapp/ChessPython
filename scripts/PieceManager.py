@@ -3,6 +3,8 @@ from scripts.Utilities import *
 from scripts.Piece import *
 from scripts.Board import getBoardPositonCenter, getRowAndCollum, getCellSize, getGrid, getSize
 from scripts.AI import *
+import itertools
+
 
 pieceSize = 250
 piecesAmount = 0
@@ -127,6 +129,7 @@ def calculatePieces():
         if pieceB.alive:
             pieceB.posLocations = getPossibleLocations(pieceB)
 
+
 def drawPieces():
     global redrawRequired
     redrawRequired = False
@@ -142,7 +145,7 @@ def drawPieces():
             drawSprite(width, height, pieces, pieceSprite.getPiece(pieceSprite("black"),pieceB.pieceType), pieceSize, getBoardPositonCenter(pieceB.position))
     return pieces
 
-def drawMovingPiece(currentPiece, currentposition):
+def drawMovingPiece(currentPiece, currentposition, blackAndWhiteColor):
     width, height = getSize()
     cellSize = getCellSize()
     x, y = getRowAndCollum(currentPiece.position)
@@ -153,14 +156,14 @@ def drawMovingPiece(currentPiece, currentposition):
     if currentPiece.isWhite: pieceColor = "white"
     if y % 2 == 0:
         if x % 2 == 0:
-            pygame.draw.rect(movingPiece, getColor("white"), (x * cellSize, y * cellSize, cellSize, cellSize))
+            pygame.draw.rect(movingPiece, getColor("white" if blackAndWhiteColor == True else "brown"), (x * cellSize, y * cellSize, cellSize, cellSize))
         else:
-            pygame.draw.rect(movingPiece, getColor("black"), (x * cellSize, y * cellSize, cellSize, cellSize))
+            pygame.draw.rect(movingPiece, getColor("black" if blackAndWhiteColor == True else "lightbrown"), (x * cellSize, y * cellSize, cellSize, cellSize))
     else:
         if x % 2 == 0:
-            pygame.draw.rect(movingPiece, getColor("black"), (x * cellSize, y * cellSize, cellSize, cellSize))
+            pygame.draw.rect(movingPiece, getColor("black" if blackAndWhiteColor == True else "lightbrown"), (x * cellSize, y * cellSize, cellSize, cellSize))
         else:
-            pygame.draw.rect(movingPiece, getColor("white"), (x * cellSize, y * cellSize, cellSize, cellSize))
+            pygame.draw.rect(movingPiece, getColor("white" if blackAndWhiteColor == True else "brown"), (x * cellSize, y * cellSize, cellSize, cellSize))
    
     for place in currentPiece.posLocations:
         x, y = getRowAndCollum(place)
@@ -310,7 +313,7 @@ def getPossibleLocations(piece):
                 position = piece.position + xGrid - 1
                 if (checkMove(piece,position, 2)): places.append(position)
                 position = piece.position - 1
-                if (checkMove(piece,position, 2)): places.append(position)  
+                if (checkMove(piece,position, 2)): places.append(position)
         return places
 
 def checkMove(piece, position, moveType):
