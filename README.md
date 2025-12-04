@@ -20,6 +20,11 @@ ChessPython is a Python-based chess game application. This project aims to provi
     ```
 ## Usage
 
+Requirements:
+
+sudo easy_install-3.8 pygame
+python => 2.6.1??
+
 To start the game, run the following command:
 ```bash
 python main.py

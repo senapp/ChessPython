@@ -1,4 +1,7 @@
+from dataclasses import dataclass
 from scripts.AI import setupAI
+
+
 from typing import Any
 import pygame
 from pygame.locals import *
@@ -10,76 +13,83 @@ from scripts.PieceMover import *
 
 import asyncio
 
-#Default values
-title = 'Chess Python'
-icon = 'images/icon-round.png'
-font = 'Arial'
-myfont = Any
-screen = Any
+import yaml
 
-FPS = pygame.time.Clock()
+@dataclass(frozen=True)
+class VisualConfig:
+    title: str
+    font: str
+    textSize: int
+    width: int
+    height: int
+    menuWidth: int
+    icon: str
+    cellSize: int
+    size: {int, int}
 
-maxFPS = 30
-logFPS = False
-menuWidth = 150
-width = 400
-height = 400
-xGrid = 8
-yGrid = 8
-cellSize = 50
-fontSize = 30
-whiteStarts = True
-blackAndWhiteColor = True
-AI = True
-#Default values end
+@dataclass(frozen=True)
+class GameConfig:
+    maxFPS: int
+    logFPS: bool
+    whiteStarts: bool
+    blackAndWhiteColor: Any
+    xGrid: int
+    yGrid: int
+    AI: bool
+
+@dataclass(frozen=True)
+class AppConfig:
+    visual: VisualConfig
+    game: GameConfig
 
 def setup():
-    global title, icon, font,myfont, maxFPS, logFPS, menuWidth, width, height, xGrid, yGrid, screen, FPS, cellSize, fontSize, whiteStarts, AI, blackAndWhiteColor
+    appConfig: AppConfig = None
 
-    settings = open("settings.config", "r")
-    try:
-        for setting in settings.readlines():
-            if ("title" in setting): title = setting.split(':')[1]
-            elif ("font" in setting): font = setting.split(':')[1]
-            elif ("textSize" in setting): fontSize = int(setting.split(':')[1])
-            elif ("maxFPS" in setting): maxFPS = int(setting.split(':')[1])
-            elif ("logFPS" in setting):
-                if ("true" in setting.split(':')[1].lower()): logFPS = True
-                else: logFPS = False
-            elif ("width" in setting): width = int(setting.split(':')[1])
-            elif ("height" in setting): height = int(setting.split(':')[1])
-            elif ("menuWidth" in setting): menuWidth = int(setting.split(':')[1])
-            elif ("whiteStarts" in setting):
-                if ("true" in setting.split(':')[1].lower()): whiteStarts = True
-                else: whiteStarts = False
-            elif ("AI" in setting):
-                if ("true" in setting.split(':')[1].lower()): AI = True
-                else: AI = False
-            elif ("blackAndWhiteColor" in setting):
-                if ("true" in setting.split(':')[1].lower()): blackAndWhiteColor = True
-                else: blackAndWhiteColor = False
-            #elif ("xGrid" in setting): xGrid = int(setting.split(':')[1])
-            #elif ("yGrid" in setting): yGrid = int(setting.split(':')[1])
-    except: print("settings.config format errors")
+    with open('settings.yml', 'r') as file:
+        raw_config = yaml.safe_load(file)
+        
+        visual = VisualConfig(
+            title = raw_config.visual.title,
+            font = raw_config.visual.font,
+            textSize = raw_config.visual.textSize,
+            width = raw_config.visual.width,
+            height = raw_config.visual.height,
+            menuWidth = raw_config.visual.menuWidth,
+            icon = raw_config.visual.icon,
+            cellSize = (raw_config.visual.width / raw_config.visual.xGrid),
+            size = (raw_config.visual.width + raw_config.visual.menuWidth, raw_config.visual.height)
+        )
 
-    # Pygame setup
+        game = GameConfig(
+            maxFPS = raw_config.game.maxFPS,
+            logFPS = raw_config.game.logFPS,
+            whiteStarts = raw_config.game.whiteStarts,
+            blackAndWhiteColor = raw_config.game.blackAndWhiteColor,
+            xGrid = raw_config.game.xGrid,
+            yGrid = raw_config.game.yGrid,
+            AI = raw_config.game.AI
+        )
+
+        appConfig = AppConfig(visual = visual, game = game)
+
+    if appConfig is None:
+        raise ValueError("Failed to load configuration.")
+    
+    asyncio.run(main(appConfig))
+
+async def main(appConfig: AppConfig):
+    RUNNING = True
+
     pygame.init()
-    img = pygame.image.load(icon)
-    pygame.display.set_icon(img)
-    pygame.display.set_caption(title)
+    pygame.display.set_icon(pygame.image.load(appConfig.visual.icon))
+    pygame.display.set_caption(appConfig.visual.title)
     pygame.font.init()
 
-    myfont = pygame.font.SysFont(font, 30)
-    cellSize = width / xGrid
-    size = width + menuWidth, height
-    screen = pygame.display.set_mode(size)
+    myfont = pygame.font.SysFont(appConfig.visual.font, appConfig.visual.fontSize)
+    screen = pygame.display.set_mode(appConfig.visual.size)
 
     FPS = pygame.time.Clock()
-    FPS.tick(maxFPS)
-
-async def main():
-    setup()
-    RUNNING = True
+    FPS.tick(appConfig.game.maxFPS)
 
     setupBoard(width, height, xGrid, yGrid, cellSize, blackAndWhiteColor)
     pieceManagerSetup(xGrid,yGrid, whiteStarts)
@@ -116,13 +126,15 @@ async def main():
             screen.blit(movingPiece,(0,0))
 
         pygame.display.flip()
-        if (logFPS): updateFPS()
+
+        if appConfig.game.logFPS:
+            pygame.display.set_caption("FPS: " + str(round(FPS.get_fps(), 0)))
+            FPS.tick(appConfig.game.maxFPS)
+
         await asyncio.sleep(0)
 
     pygame.quit()
+    
 
-def updateFPS():
-    pygame.display.set_caption("FPS: " + str(round(FPS.get_fps(), 0)))
-    FPS.tick(maxFPS)
-
-asyncio.run(main())
+if __name__ == "__main__":
+    setup()
