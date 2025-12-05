@@ -3,13 +3,11 @@ settings:
     title: Chess Python
     font: Arial
     textSize: 25
-    width: 400
-    height: 400
-    menuWidth: 150
+    width: 800
+    height: 800
+    menuWidth: 200
     icon: images/icon-round.png
   game:
-    maxFPS: 120
-    logFPS: true
     whiteStarts: true
     blackAndWhiteColor: false
     AI: false

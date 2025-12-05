@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}" />
+         <style>
+            .gridItem {
+                width: {{ appConfig.visual.cellSize }}px;
+                height: {{ appConfig.visual.cellSize }}px;
+            }
+        </style>
+    <body>
+        <div class="gridContainer">
+            {% for y in range(appConfig.game.yGrid -1, -1, -1)  %}
+                <div class="gridRow">
+                    {% for x in range(appConfig.game.xGrid) %}
+                        <div class="gridItem" data-x="{{ x }}" data-y="{{ y }}" style="background-color: {{ "#eec197ff" if (x + y) % 2 == 0 else "#a15c1cff" }};">
+                            {% set piece = board.pieces[x][y] %}
+                            {% if piece %}
+                                <img draggable="true" data-x="{{ x }}" data-y="{{ y }}" title="{{ piece.getPieceName() + " at " + piece.getChessNotationPosition() }}" class="sprite" src="{{ url_for('static', filename='images/' + piece.getSprite())}}"></img>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function(){
+                document.querySelectorAll('.sprite').forEach(function(img){
+                    img.addEventListener('dragstart', function(e){
+                        const sx = parseInt(img.dataset.x, 10);
+                        const sy = parseInt(img.dataset.y, 10);
+                        e.dataTransfer.setData('application/json', JSON.stringify({from:[sx, sy]}));
+                    });
+                });
+
+                document.querySelectorAll('.gridItem').forEach(function(cell){
+                    cell.addEventListener('dragover', function(e){ e.preventDefault(); });
+                    cell.addEventListener('drop', async function(e){
+                        e.preventDefault();
+                        const data = e.dataTransfer.getData('application/json');
+                        if (!data) return;
+                        const payload = JSON.parse(data);
+                        const from = payload.from;
+                        const to = [parseInt(cell.dataset.x,10), parseInt(cell.dataset.y,10)];
+
+                        try {
+                            const resp = await fetch('/move', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ from: from, to: to })
+                            });
+                            if (resp.ok) {
+                                // reload to reflect new board state
+                                window.location.reload();
+                            } else {
+                                const j = await resp.json();
+                                alert('Move failed: ' + (j.error || resp.statusText));
+                            }
+                        } catch (err) {
+                            alert('Move error: ' + err.message);
+                        }
+                    });
+                });
+            });
+        </script>
+    </body>
+</html>

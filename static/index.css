@@ -1,0 +1,23 @@
+.gridContainer {
+    display: flex;
+    width: fit-content;
+    flex-direction: column;
+    height: 100%;
+    border: 2px solid black;
+}
+
+.gridRow {
+    display: flex;
+    flex-direction: row;
+}
+
+.gridItem {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sprite {
+    width: 70%;
+    height: 70%;
+}

@@ -1,140 +1,97 @@
 from dataclasses import dataclass
-from scripts.AI import setupAI
-
-
 from typing import Any
-import pygame
-from pygame.locals import *
-from scripts.Utilities import *
-from scripts.Board import *
-from scripts.PieceManager import *
-from scripts.Menu import *
-from scripts.PieceMover import *
-
-import asyncio
-
+from flask import Flask, render_template, request, jsonify
 import yaml
 
-@dataclass(frozen=True)
-class VisualConfig:
-    title: str
-    font: str
-    textSize: int
-    width: int
-    height: int
-    menuWidth: int
-    icon: str
-    cellSize: int
-    size: {int, int}
+from scripts.classes import AppConfig, Board, VisualConfig, GameConfig
 
-@dataclass(frozen=True)
-class GameConfig:
-    maxFPS: int
-    logFPS: bool
-    whiteStarts: bool
-    blackAndWhiteColor: Any
-    xGrid: int
-    yGrid: int
-    AI: bool
+app = Flask(__name__)
 
-@dataclass(frozen=True)
-class AppConfig:
-    visual: VisualConfig
-    game: GameConfig
+# Global state: app config and board persisted in memory while the server runs
+appConfig_global: AppConfig | None = None
+board_global: Board | None = None
 
-def setup():
+def setup() -> AppConfig:
     appConfig: AppConfig = None
 
     with open('settings.yml', 'r') as file:
         raw_config = yaml.safe_load(file)
-        
+
         visual = VisualConfig(
-            title = raw_config.visual.title,
-            font = raw_config.visual.font,
-            textSize = raw_config.visual.textSize,
-            width = raw_config.visual.width,
-            height = raw_config.visual.height,
-            menuWidth = raw_config.visual.menuWidth,
-            icon = raw_config.visual.icon,
-            cellSize = (raw_config.visual.width / raw_config.visual.xGrid),
-            size = (raw_config.visual.width + raw_config.visual.menuWidth, raw_config.visual.height)
+            title = raw_config['settings']['visual']['title'],
+            font = raw_config['settings']['visual']['font'],
+            textSize = raw_config['settings']['visual']['textSize'],
+            width = raw_config['settings']['visual']['width'],
+            height = raw_config['settings']['visual']['height'],
+            menuWidth = raw_config['settings']['visual']['menuWidth'],
+            icon = raw_config['settings']['visual']['icon'],
+            cellSize = int(raw_config['settings']['visual']['width'] / raw_config['settings']['game']['xGrid']),
+            size = (raw_config['settings']['visual']['width'] + raw_config['settings']['visual']['menuWidth'], raw_config['settings']['visual']['height'])
         )
 
         game = GameConfig(
-            maxFPS = raw_config.game.maxFPS,
-            logFPS = raw_config.game.logFPS,
-            whiteStarts = raw_config.game.whiteStarts,
-            blackAndWhiteColor = raw_config.game.blackAndWhiteColor,
-            xGrid = raw_config.game.xGrid,
-            yGrid = raw_config.game.yGrid,
-            AI = raw_config.game.AI
+            whiteStarts = raw_config['settings']['game']['whiteStarts'],
+            blackAndWhiteColor = raw_config['settings']['game']['blackAndWhiteColor'],
+            xGrid = raw_config['settings']['game']['xGrid'],
+            yGrid = raw_config['settings']['game']['yGrid'],
+            AI = raw_config['settings']['game']['AI']
         )
 
-        appConfig = AppConfig(visual = visual, game = game)
+        appConfig = AppConfig(visual, game)
 
     if appConfig is None:
         raise ValueError("Failed to load configuration.")
-    
-    asyncio.run(main(appConfig))
 
-async def main(appConfig: AppConfig):
-    RUNNING = True
+    return appConfig
 
-    pygame.init()
-    pygame.display.set_icon(pygame.image.load(appConfig.visual.icon))
-    pygame.display.set_caption(appConfig.visual.title)
-    pygame.font.init()
 
-    myfont = pygame.font.SysFont(appConfig.visual.font, appConfig.visual.fontSize)
-    screen = pygame.display.set_mode(appConfig.visual.size)
+def ensure_initialized():
+    """Initialize global app config and board once."""
+    global appConfig_global, board_global
+    if appConfig_global is None:
+        appConfig_global = setup()
+    if board_global is None:
+        board_global = Board(appConfig_global)
 
-    FPS = pygame.time.Clock()
-    FPS.tick(appConfig.game.maxFPS)
 
-    setupBoard(width, height, xGrid, yGrid, cellSize, blackAndWhiteColor)
-    pieceManagerSetup(xGrid,yGrid, whiteStarts)
-    if (AI):
-        setupAI(False, 0)
+@app.route('/', methods=["GET"])
+def main():
+    ensure_initialized()
+    return render_template('index.html', appConfig=appConfig_global, board=board_global)
 
-    board = drawBoard()
-    pieces = drawPieces()
-    menu = drawMenu(menuWidth, myfont, fontSize, isWhitesTurn(), getLastMove())
 
-    while RUNNING:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                RUNNING = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mouseDown(pygame.mouse.get_pos())
-            if event.type == pygame.MOUSEBUTTONUP:
-                mouseReleased(pygame.mouse.get_pos())
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_r:
-                    resetPieces()
-                    pieceManagerSetup(xGrid, yGrid, whiteStarts)
-                    pieces = drawPieces()
+@app.route('/move', methods=['POST'])
+def move_piece():
+    """Receive a JSON payload with 'from' and 'to' coordinates and update the board."""
+    ensure_initialized()
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'ok': False, 'error': 'Invalid JSON'}), 400
 
-        menu = drawMenu(menuWidth, myfont, fontSize, isWhitesTurn(), getLastMove())
-        if (isRedrawRequired()): pieces = drawPieces()
+    try:
+        src = data.get('from')
+        dst = data.get('to')
+        sx, sy = int(src[0]), int(src[1])
+        dx, dy = int(dst[0]), int(dst[1])
+    except Exception as e:
+        return jsonify({'ok': False, 'error': 'Invalid payload format'}), 400
 
-        screen.blit(board, (0,0))
-        screen.blit(pieces, (0,0))
-        screen.blit(menu, (0,0))
+    # bounds check
+    if not (0 <= sx < appConfig_global.game.xGrid and 0 <= sy < appConfig_global.game.yGrid and 0 <= dx < appConfig_global.game.xGrid and 0 <= dy < appConfig_global.game.yGrid):
+        return jsonify({'ok': False, 'error': 'Out of bounds'}), 400
 
-        if (isHoldingPiece()):
-            movingPiece = drawMovingPiece(getHoldingPiece()[1], pygame.mouse.get_pos(), blackAndWhiteColor)
-            screen.blit(movingPiece,(0,0))
+    piece = board_global.pieces[sx][sy]
+    if piece is None:
+        return jsonify({'ok': False, 'error': 'No piece at source'}), 400
 
-        pygame.display.flip()
+    # perform move (simple overwrite / capture behavior)
+    piece.position = [dx, dy]
+    board_global.pieces[dx][dy] = piece
+    board_global.pieces[sx][sy] = None
 
-        if appConfig.game.logFPS:
-            pygame.display.set_caption("FPS: " + str(round(FPS.get_fps(), 0)))
-            FPS.tick(appConfig.game.maxFPS)
+    return jsonify({'ok': True})
 
-        await asyncio.sleep(0)
 
-    pygame.quit()
-    
-
-if __name__ == "__main__":
-    setup()
+if __name__ == '__main__':
+    ensure_initialized()
+    app.run(host="0.0.0.0", debug=True)
